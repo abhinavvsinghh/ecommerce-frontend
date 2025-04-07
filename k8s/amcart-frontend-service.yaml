@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: amcart-frontend
+  namespace: amcart-frontend
+  labels:
+    app: amcart-frontend
+spec:
+  selector:
+    app: amcart-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  type: ClusterIP

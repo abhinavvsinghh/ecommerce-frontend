@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+// Read API URL from environment variables
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
 // Create a base api instance with configured defaults
 const api = axios.create({
@@ -22,9 +23,14 @@ api.interceptors.request.use(
   async (config) => {
     try {
       // Get token from localStorage
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem("authToken");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      // Log environment information in development mode only
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[API] Using base URL: ${API_BASE_URL}`);
       }
     } catch (error) {
       console.log('No authentication token available');
