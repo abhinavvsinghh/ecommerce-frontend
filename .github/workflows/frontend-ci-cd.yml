@@ -14,7 +14,6 @@ on:
       - '!README.md'
       - '!.gitignore'
 
-
 env:
   DOCKER_HUB_USERNAME: abhinavvsinghh
   IMAGE_NAME: amcart-frontend
