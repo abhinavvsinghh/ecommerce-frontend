@@ -1,127 +1,29 @@
-name: Frontend CI/CD
+name: Deploy to Kyma
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "**"
-      - "!README.md"
-      - "!.gitignore"
-  pull_request:
-    branches: [main]
-    paths:
-      - "**"
-      - "!README.md"
-      - "!.gitignore"
-
-env:
-  DOCKER_HUB_USERNAME: abhinavvsinghh
-  IMAGE_NAME: amcart-frontend
-  IMAGE_TAG: ${{ github.sha }}
+  workflow_dispatch:  # Manual trigger
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "19"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run ESLint
-        run: npm run lint || echo "Linting issues found"
-
-  test:
-    name: Test
-    needs: lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "19"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: |
-          npm test -- --coverage --watchAll=false || echo "Proceeding with next steps"
-
-  build:
-    name: Build & Push Image
-    needs: test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ env.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            REACT_APP_API_URL=https://amcart-backend.c-418bb73.kyma.ondemand.com/api
-            REACT_APP_ENV=production
-
   deploy:
-    name: Deploy to Kubernetes
-    needs: build
+    name: Deploy to Kyma
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-
-      - name: Create kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
-      - name: Update and Apply Deployment manifest
-        run: |
-          # Update the image tag in deployment yaml
-          sed -i "s|image: abhinavvsinghh/amcart-frontend:latest|image: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s/amcart-frontend-deployment.yaml
-          # Apply only the deployment manifest
-          kubectl apply -f k8s/amcart-frontend-deployment.yaml
-
+        
+      - name: Deploy to Kyma cluster
+        uses: steebchen/kubectl@v2.0.0
+        with:
+          config: ${{ secrets.KUBE_CONFIG }}
+          command: apply -f k8s/amcart-frontend-deployment.yaml
+          
       - name: Verify deployment
-        run: |
-          kubectl rollout status deployment/amcart-frontend -n amcart-frontend
-
+        uses: steebchen/kubectl@v2.0.0
+        with:
+          config: ${{ secrets.KUBE_CONFIG }}
+          command: rollout status deployment/amcart-frontend -n amcart-frontend
+          
       - name: Output deployment URL
         run: |
           echo "Deployment successful! The application is available at:"
