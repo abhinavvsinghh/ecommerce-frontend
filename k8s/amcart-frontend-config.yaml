@@ -7,6 +7,6 @@ metadata:
     app: amcart-frontend
 data:
   # API backend URL (using Kubernetes service name)
-  REACT_APP_API_URL: "/api"
+  REACT_APP_API_URL: "https://amcart-backend.c-418bb73.kyma.ondemand.com/api"
   # Environment type
   REACT_APP_ENV: "production"

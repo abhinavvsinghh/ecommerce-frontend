@@ -1,0 +1,23 @@
+apiVersion: gateway.kyma-project.io/v2alpha1
+kind: APIRule
+metadata:
+  name: amcart-frontend-api-rule
+  namespace: amcart-frontend
+spec:
+  hosts:
+    - amcart-nagarro
+  gateway: kyma-system/kyma-gateway
+  service:
+    name: amcart-frontend
+    namespace: amcart-frontend
+    port: 80
+  rules:
+    - path: /*
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      noAuth: true
