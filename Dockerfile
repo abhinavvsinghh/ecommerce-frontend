@@ -10,6 +10,8 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
+RUN REACT_APP_API_URL=https://amcart-backend.c-418bb73.kyma.ondemand.com/api REACT_APP_ENV=production npm run build
+
 # Production stage
 FROM nginx:alpine
 WORKDIR /usr/share/nginx/html
