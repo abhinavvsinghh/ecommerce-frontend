@@ -2,19 +2,17 @@ name: Frontend CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - '**'
-      - '!README.md'
-      - '!.gitignore'
-      - '!docs/**'
+      - "**"
+      - "!README.md"
+      - "!.gitignore"
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - '**'
-      - '!README.md'
-      - '!.gitignore'
-      - '!docs/**'
+      - "**"
+      - "!README.md"
+      - "!.gitignore"
 
 env:
   DOCKER_HUB_USERNAME: abhinavvsinghh
@@ -32,8 +30,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '19'
-          cache: 'npm'
+          node-version: "19"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -52,8 +50,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '19'
-          cache: 'npm'
+          node-version: "19"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -66,7 +64,7 @@ jobs:
     name: Build & Push Image
     needs: test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -99,39 +97,31 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
-      
-      - name: Install kubectl-oidc plugin
-        run: |
-          mkdir -p ~/.kube/plugins/oidc-login
-          curl -L -o kubectl-oidc_login.tar.gz https://github.com/int128/kubelogin/releases/latest/download/kubelogin_linux_amd64.tar.gz
-          tar -xzf kubectl-oidc_login.tar.gz
-          sudo mv kubelogin /usr/local/bin/kubectl-oidc_login
-          chmod +x /usr/local/bin/kubectl-oidc_login
-        
+
       - name: Create kubeconfig
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
-        
+
       - name: Update and Apply Deployment manifest
         run: |
           # Update the image tag in deployment yaml
           sed -i "s|image: abhinavvsinghh/amcart-frontend:latest|image: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s/amcart-frontend-deployment.yaml
-          # Apply only the deployment manifest with validation disabled for now
-          kubectl apply -f k8s/amcart-frontend-deployment.yaml --validate=false
-          
+          # Apply only the deployment manifest
+          kubectl apply -f k8s/amcart-frontend-deployment.yaml
+
       - name: Verify deployment
         run: |
           kubectl rollout status deployment/amcart-frontend -n amcart-frontend
-          
+
       - name: Output deployment URL
         run: |
           echo "Deployment successful! The application is available at:"
