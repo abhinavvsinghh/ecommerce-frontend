@@ -1,9 +1,15 @@
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
 import { useGuestCart } from './useGuestCart';
+
+// Create a session-level variable to prevent multiple migrations
+// This will persist during the browser session but reset on page refresh
+if (typeof window !== 'undefined' && !window.__CART_MIGRATION_COMPLETED) {
+  window.__CART_MIGRATION_COMPLETED = false;
+}
 
 export const useCart = () => {
   const { cart, loading, addItemToCart, updateItem, removeItem, emptyCart, refreshCart } = useContext(CartContext);
@@ -26,17 +32,74 @@ export const useCart = () => {
   const [pendingColor, setPendingColor] = useState(null);
   const [returnTo, setReturnTo] = useState(null);
   
-  // Used to track if cart migration already happened
-  const [migratedCart, setMigratedCart] = useState(false);
+  // Prevent multiple migration attempts using refs
+  const migrationAttemptedRef = useRef(false);
+  const migrationCompletedRef = useRef(window.__CART_MIGRATION_COMPLETED || false);
+  
+  // For remembering guest mode choice - use localStorage with useRef to avoid state updates
+  const guestModeChosenRef = useRef(localStorage.getItem('guestModeChosen') === 'true');
+  const [guestModeChosen, setGuestModeChosen] = useState(guestModeChosenRef.current);
+  
+  // Storage for pending product after login - stored in sessionStorage for persistence
+  const getPendingProduct = useCallback(() => {
+    const pendingData = sessionStorage.getItem('pendingProductAfterLogin');
+    if (pendingData) {
+      try {
+        return JSON.parse(pendingData);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }, []);
+  
+  const savePendingProduct = useCallback((product, quantity, size, color) => {
+    if (product) {
+      const pendingData = {
+        product: {
+          id: product.id,
+          name: product.name,
+          images: product.images,
+          stockQuantity: product.stockQuantity
+        },
+        quantity,
+        size,
+        color,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem('pendingProductAfterLogin', JSON.stringify(pendingData));
+    }
+  }, []);
+  
+  const clearPendingProduct = useCallback(() => {
+    sessionStorage.removeItem('pendingProductAfterLogin');
+  }, []);
 
-  // Merge guest cart with user cart when user logs in - with safeguards
+  // Merge guest cart with user cart when user logs in - with improved safeguards
   useEffect(() => {
-    if (authenticated && authChecked && !migratedCart && guestCart && guestCart.items && guestCart.items.length > 0) {
+    // Only run this effect if:
+    // 1. User is authenticated
+    // 2. Auth check is completed
+    // 3. We haven't attempted migration yet in this component instance
+    // 4. Migration hasn't been completed in this browser session
+    if (authenticated && 
+        authChecked && 
+        !migrationAttemptedRef.current && 
+        !migrationCompletedRef.current &&
+        guestCart?.items?.length > 0) {
+      
+      // Mark migration as attempted for this component instance
+      migrationAttemptedRef.current = true;
+      
       const migrateGuestCart = async () => {
-        setMigratedCart(true); // Set to true before migration to prevent multiple attempts
-        
         try {
+          // Mark as completed to prevent multiple migrations across components
+          window.__CART_MIGRATION_COMPLETED = true;
+          migrationCompletedRef.current = true;
+          
+          console.log("Starting cart migration...");
           let successCount = 0;
+          
           // For each item in guest cart, add to user cart
           for (const item of guestCart.items) {
             try {
@@ -50,18 +113,49 @@ export const useCart = () => {
           // Clear guest cart after migration
           clearGuestCart();
           
+          // Show notification only if items were migrated successfully
           if (successCount > 0) {
             toast.success(`${successCount} items from your guest cart have been added to your account`);
           }
+          
+          // Reset guest mode choice after successful login
+          localStorage.removeItem('guestModeChosen');
+          guestModeChosenRef.current = false;
+          setGuestModeChosen(false);
         } catch (error) {
           console.error('Error migrating guest cart:', error);
-          toast.error('Failed to migrate your guest cart to your account');
         }
       };
       
       migrateGuestCart();
     }
-  }, [authenticated, authChecked, guestCart, migratedCart]);
+  }, [authenticated, authChecked, guestCart]);
+  
+  // Handle pending product after login
+  useEffect(() => {
+    if (authenticated && authChecked) {
+      const pendingData = getPendingProduct();
+      
+      if (pendingData && pendingData.product) {
+        // Clear pending data right away to prevent duplicate processing
+        clearPendingProduct();
+        
+        // Add the product to cart
+        addItemToCart(
+          pendingData.product.id, 
+          pendingData.quantity || 1, 
+          pendingData.size, 
+          pendingData.color
+        )
+        .then(success => {
+          if (success) {
+            toast.success('Product added to cart!');
+          }
+        })
+        .catch(err => console.error('Error adding pending product after login:', err));
+      }
+    }
+  }, [authenticated, authChecked, getPendingProduct, clearPendingProduct, addItemToCart]);
 
   const addToCart = async (productId, quantity = 1, size, color, product) => {
     // Store current path for later redirect
@@ -85,8 +179,13 @@ export const useCart = () => {
         toast.error('Failed to add item to cart');
         return false;
       }
+    } else if (guestModeChosenRef.current) {
+      // User has previously chosen guest mode, add directly to guest cart
+      addItemToGuestCart(product, quantity, size, color);
+      toast.success('Product added to guest cart');
+      return true;
     } else {
-      // Show login dialog
+      // Show login dialog only if guest mode wasn't chosen before
       setPendingProduct(product);
       setPendingQuantity(quantity);
       setPendingSize(size);
@@ -96,23 +195,38 @@ export const useCart = () => {
     }
   };
 
-  const continueAsGuest = () => {
-    if (pendingProduct) {
-      // Check stock again
-      if (pendingProduct.stockQuantity < pendingQuantity) {
-        toast.error(`Sorry, only ${pendingProduct.stockQuantity} items available in stock`);
-        closeLoginDialog();
-        return;
+  const continueAsGuest = (action = 'guest') => {
+    if (action === 'login') {
+      // Save pending product data to sessionStorage for retrieval after login
+      if (pendingProduct) {
+        savePendingProduct(pendingProduct, pendingQuantity, pendingSize, pendingColor);
       }
       
-      addItemToGuestCart(pendingProduct, pendingQuantity, pendingSize, pendingColor);
-      toast.success('Product added to guest cart');
+      // Navigate to login page
+      navigate('/login', { 
+        state: { 
+          redirectTo: pendingProduct ? `/products/${pendingProduct.id}` : location.pathname,
+          fromCart: true,
+          fromProductDetails: !!pendingProduct
+        } 
+      });
+    } else if (action === 'guest') {
+      // User chose to continue as guest - store this preference
+      localStorage.setItem('guestModeChosen', 'true');
+      guestModeChosenRef.current = true;
+      setGuestModeChosen(true);
       
-      // Reset pending state
-      setPendingProduct(null);
-      setPendingQuantity(1);
-      setPendingSize(null);
-      setPendingColor(null);
+      if (pendingProduct) {
+        // Check stock again
+        if (pendingProduct.stockQuantity < pendingQuantity) {
+          toast.error(`Sorry, only ${pendingProduct.stockQuantity} items available in stock`);
+          closeLoginDialog();
+          return;
+        }
+        
+        addItemToGuestCart(pendingProduct, pendingQuantity, pendingSize, pendingColor);
+        toast.success('Product added to guest cart');
+      }
     }
     
     closeLoginDialog();
@@ -120,6 +234,12 @@ export const useCart = () => {
 
   const closeLoginDialog = () => {
     setLoginDialogOpen(false);
+    
+    // Clear pending state
+    setPendingProduct(null);
+    setPendingQuantity(1);
+    setPendingSize(null);
+    setPendingColor(null);
   };
 
   const updateCartItem = async (productId, quantity) => {
@@ -186,6 +306,15 @@ export const useCart = () => {
     }
   };
 
+  // Reset guest mode choice when user logs out
+  useEffect(() => {
+    if (!authenticated && authChecked) {
+      // Clear migration completed flag when user logs out
+      window.__CART_MIGRATION_COMPLETED = false;
+      migrationCompletedRef.current = false;
+    }
+  }, [authenticated, authChecked]);
+
   // Get the active cart based on authentication status
   const activeCart = authenticated ? cart : guestCart;
 
@@ -206,6 +335,7 @@ export const useCart = () => {
     pendingProduct,
     isAuthenticated: authenticated,
     uniqueItemCount,
-    returnTo
+    returnTo,
+    guestModeChosen
   };
 };

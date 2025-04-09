@@ -38,8 +38,6 @@ const Cart = () => {
     isAuthenticated,
   } = useCart();
 
-  // No useEffect here to avoid triggering unnecessary fetches
-
   const handleQuantityChange = (productId, currentQuantity, change) => {
     const newQuantity = Math.max(1, currentQuantity + change);
     updateCartItem(productId, newQuantity);
@@ -51,6 +49,10 @@ const Cart = () => {
 
   const handleClearCart = () => {
     clearCart();
+  };
+
+  const handleDialogAction = (action) => {
+    continueAsGuest(action);
   };
 
   if (loading) {
@@ -172,7 +174,6 @@ const Cart = () => {
                         <RemoveIcon />
                       </IconButton>
 
-                      {/* This TextField needs to be fixed */}
                       <TextField
                         size="small"
                         type="number"
@@ -341,7 +342,7 @@ const Cart = () => {
       <LoginDialog
         open={loginDialogOpen}
         onClose={closeLoginDialog}
-        onContinueAsGuest={continueAsGuest}
+        onContinueAsGuest={handleDialogAction}
       />
     </Container>
   );

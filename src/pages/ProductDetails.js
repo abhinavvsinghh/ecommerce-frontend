@@ -41,7 +41,8 @@ const ProductDetails = () => {
     loginDialogOpen, 
     closeLoginDialog, 
     continueAsGuest,
-    pendingProduct 
+    pendingProduct,
+    guestModeChosen
   } = useCart();
   
   const [product, setProduct] = useState(null);
@@ -71,14 +72,6 @@ const ProductDetails = () => {
     
     fetchProduct();
   }, [id]);
-
-  // Check for redirect from login page
-  useEffect(() => {
-    // If redirected from login page after successful login, add the product to cart
-    if (location.state?.fromLogin && product && authenticated) {
-      handleAddToCart();
-    }
-  }, [location.state, product, authenticated]);
   
   const handleSizeChange = (event) => {
     setSelectedSize(event.target.value);
@@ -93,6 +86,8 @@ const ProductDetails = () => {
     
     try {
       setAddingToCart(true);
+      
+      // Add to cart with product, quantity, size, color
       const result = await addToCart(
         product.id, 
         quantity, 
@@ -101,14 +96,28 @@ const ProductDetails = () => {
         product
       );
       
-      if (result) {
-        navigate('/cart');
+      // Navigate to cart if product was successfully added
+      // This happens if user is authenticated or has chosen guest mode before
+      if (result && (authenticated || guestModeChosen)) {
+        setTimeout(() => {
+          navigate('/cart');
+        }, 300);
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
     } finally {
       setAddingToCart(false);
     }
+  };
+  
+  const handleDialogAction = (action) => {
+    continueAsGuest(action);
+    
+    // If user chose guest mode, navigate to cart after adding product
+    if (action === 'guest') {
+      setTimeout(() => navigate('/cart'), 300);
+    }
+    // If user chose login, they'll be redirected to login page automatically
   };
   
   if (loading) {
@@ -319,7 +328,7 @@ const ProductDetails = () => {
       <LoginDialog
         open={loginDialogOpen}
         onClose={closeLoginDialog}
-        onContinueAsGuest={continueAsGuest}
+        onContinueAsGuest={handleDialogAction}
         product={pendingProduct}
       />
     </Container>

@@ -34,21 +34,24 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [processing, setProcessing] = useState(false);
   const { login, authenticated, googleLogin } = useAuth();
-  const { returnTo, pendingProduct } = useCart();
+  const { returnTo } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState('');
   
   // Check for redirect path in state or query params
   const redirectTo = location.state?.redirectTo || 
-                      returnTo || 
-                      new URLSearchParams(location.search).get('redirectTo') || 
-                      '/';
+                     returnTo || 
+                     new URLSearchParams(location.search).get('redirectTo') || 
+                     '/';
+  
+  // Note: We no longer need to extract pendingProduct from state
+  // It will be handled automatically by the useCart hook via sessionStorage
 
   useEffect(() => {
     // If already authenticated, redirect to intended destination
     if (authenticated) {
-      navigate(redirectTo);
+      navigate(redirectTo, { replace: true });
     }
     
     // Check if there's a saved email in localStorage
@@ -57,7 +60,7 @@ const Login = () => {
       formik.setFieldValue('email', savedEmail);
       setRememberMe(true);
     }
-  }, [authenticated]);
+  }, [authenticated, redirectTo]);
 
   const formik = useFormik({
     initialValues: {
@@ -73,21 +76,11 @@ const Login = () => {
         if (!success) {
           setError('Login failed. Please check your credentials.');
         } else {
-          // On successful login
+          // On successful login - just one toast notification
           toast.success('Login successful!');
           
-          // If we have a pending product, add it to cart
-          if (pendingProduct && location.state?.fromProductDetails) {
-            try {
-              // Logic to add pending product to cart
-              toast.success('Product added to cart!');
-            } catch (err) {
-              console.error('Failed to add product after login:', err);
-            }
-          }
-          
-          // Redirect back to where the user was
-          navigate(redirectTo);
+          // Redirect back to where the user was - useCart hook will handle the pending product
+          navigate(redirectTo, { replace: true });
         }
       } catch (err) {
         setError(err.message || 'Login failed. Please try again.');
@@ -104,7 +97,8 @@ const Login = () => {
     googleLogin(credentialResponse)
       .then(() => {
         toast.success('Login successful with Google!');
-        navigate(redirectTo);
+        // Redirect - useCart hook will handle the pending product
+        navigate(redirectTo, { replace: true });
       })
       .catch(error => {
         setError('Google sign-in failed. Please try again.');
