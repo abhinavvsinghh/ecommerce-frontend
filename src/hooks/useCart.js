@@ -5,10 +5,18 @@ import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
 import { useGuestCart } from './useGuestCart';
 
-// Create a session-level variable to prevent multiple migrations
-// This will persist during the browser session but reset on page refresh
-if (typeof window !== 'undefined' && !window.__CART_MIGRATION_COMPLETED) {
-  window.__CART_MIGRATION_COMPLETED = false;
+// Create session-level variables to prevent multiple migrations and toasts
+// These will persist during the browser session but reset on page refresh
+if (typeof window !== 'undefined') {
+  if (!window.__CART_MIGRATION_COMPLETED) {
+    window.__CART_MIGRATION_COMPLETED = false;
+  }
+  if (!window.__CART_MIGRATION_TOAST_SHOWN) {
+    window.__CART_MIGRATION_TOAST_SHOWN = false;
+  }
+  if (!window.__CART_MIGRATION_TOAST_ID) {
+    window.__CART_MIGRATION_TOAST_ID = 'cart-migration-toast-' + Date.now();
+  }
 }
 
 export const useCart = () => {
@@ -76,12 +84,22 @@ export const useCart = () => {
   }, []);
 
   // Merge guest cart with user cart when user logs in - with improved safeguards
+  // Add a component cleanup effect to prevent lingering state
+  useEffect(() => {
+    return () => {
+      // Cleanup function when component unmounts
+      // This helps prevent issues if the component is unmounted during migration
+      migrationAttemptedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     // Only run this effect if:
     // 1. User is authenticated
     // 2. Auth check is completed
     // 3. We haven't attempted migration yet in this component instance
     // 4. Migration hasn't been completed in this browser session
+    // 5. Guest cart has items
     if (authenticated && 
         authChecked && 
         !migrationAttemptedRef.current && 
@@ -113,9 +131,28 @@ export const useCart = () => {
           // Clear guest cart after migration
           clearGuestCart();
           
-          // Show notification only if items were migrated successfully
-          if (successCount > 0) {
-            toast.success(`${successCount} items from your guest cart have been added to your account`);
+          // Show notification only ONCE if items were migrated successfully
+          if (successCount > 0 && !window.__CART_MIGRATION_TOAST_SHOWN) {
+            // Set the flag before showing toast to prevent race conditions
+            window.__CART_MIGRATION_TOAST_SHOWN = true;
+            
+            // Use a unique toast ID to prevent duplicates
+            const toastId = window.__CART_MIGRATION_TOAST_ID;
+            
+            // Show toast with the unique ID
+            toast.success(
+              `${successCount} items from your guest cart have been added to your account`, 
+              {
+                toastId, // Use consistent ID to prevent duplicates
+                onClose: () => {
+                  // After toast is closed, allow future toasts (for future logins)
+                  setTimeout(() => {
+                    window.__CART_MIGRATION_TOAST_SHOWN = false;
+                    window.__CART_MIGRATION_TOAST_ID = 'cart-migration-toast-' + Date.now();
+                  }, 5000);
+                }
+              }
+            );
           }
           
           // Reset guest mode choice after successful login
@@ -306,12 +343,15 @@ export const useCart = () => {
     }
   };
 
-  // Reset guest mode choice when user logs out
+  // Reset all flags when user logs out
   useEffect(() => {
     if (!authenticated && authChecked) {
-      // Clear migration completed flag when user logs out
+      // Reset all migration and toast flags when user logs out
       window.__CART_MIGRATION_COMPLETED = false;
+      window.__CART_MIGRATION_TOAST_SHOWN = false;
+      window.__CART_MIGRATION_TOAST_ID = 'cart-migration-toast-' + Date.now();
       migrationCompletedRef.current = false;
+      migrationAttemptedRef.current = false;
     }
   }, [authenticated, authChecked]);
 
