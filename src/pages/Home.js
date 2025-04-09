@@ -129,7 +129,7 @@ const Home = () => {
         
         <Box>
           {/* On Sale Products - render first for better perceived performance */}
-          {renderProductRow("On Sale-Soon", saleProducts, loading.sale)}
+          {renderProductRow("On Sale", saleProducts, loading.sale)}
           
           {/* Women's Products */}
           {renderProductRow("Women's Collection", womenProducts, loading.women)}
