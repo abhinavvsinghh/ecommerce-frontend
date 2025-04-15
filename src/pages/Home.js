@@ -121,7 +121,7 @@ const Home = () => {
         )}
         
         <Box>
-          {renderProductRow("On Sale", saleProducts, loading.sale)}
+          {renderProductRow("On Sale - Soon", saleProducts, loading.sale)}
           {renderProductRow("Women's Collection", womenProducts, loading.women)}
           {renderProductRow("Men's Collection", menProducts, loading.men)}
         </Box>
