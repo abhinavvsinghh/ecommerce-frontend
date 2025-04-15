@@ -15,7 +15,6 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 const LoginDialog = ({ open, onClose, onContinueAsGuest, product }) => {
   const handleLogin = () => {
     onClose();
-    // The parent component will handle navigation
     if (onContinueAsGuest) {
       onContinueAsGuest('login');
     }

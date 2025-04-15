@@ -11,16 +11,11 @@ export const CartProvider = ({ children }) => {
   const [fetchCount, setFetchCount] = useState(0);
   const { authenticated, authChecked } = useContext(AuthContext);
 
-  // Only fetch when authentication changes - with strict rate limiting
   useEffect(() => {
-    // Only fetch when authenticated and auth check completed
     if (authenticated && authChecked && fetchCount < 2) {
-      // Set loading state directly for better UX
       setLoading(true);
       
-      // Use a timeout to prevent rapid sequential requests
       const timer = setTimeout(() => {
-        // Simple fetch with basic error handling
         const fetchSingleCart = async () => {
           try {
             const response = await getCart();
@@ -38,13 +33,11 @@ export const CartProvider = ({ children }) => {
       
       return () => clearTimeout(timer);
     } else if (!authenticated && authChecked) {
-      // Clear cart state if not authenticated
       setCart(null);
       setFetchCount(0);
     }
   }, [authenticated, authChecked]);
 
-  // Simplified cart operations
   const addItemToCart = async (productId, quantity, size, color) => {
     if (!authenticated) return false;
     
@@ -113,7 +106,6 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  // Force a fresh cart fetch - with rate limiting
   const refreshCart = () => {
     if (fetchCount < 3) {
       setFetchCount(prev => prev + 1);

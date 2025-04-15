@@ -12,7 +12,6 @@ export const GuestCartProvider = ({ children }) => {
     couponCode: null
   });
 
-  // Load cart from localStorage on mount
   useEffect(() => {
     const storedCart = localStorage.getItem('guestCart');
     if (storedCart) {
@@ -25,14 +24,12 @@ export const GuestCartProvider = ({ children }) => {
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('guestCart', JSON.stringify(guestCart));
   }, [guestCart]);
 
   const addToGuestCart = (product, quantity = 1, size = null, color = null) => {
     setGuestCart(prevCart => {
-      // Check if product already exists in cart
       const existingItemIndex = prevCart.items.findIndex(item => 
         item.productId === product.id && 
         item.size === size && 
@@ -42,14 +39,12 @@ export const GuestCartProvider = ({ children }) => {
       let newItems = [...prevCart.items];
       
       if (existingItemIndex >= 0) {
-        // Update existing item quantity
         newItems[existingItemIndex] = {
           ...newItems[existingItemIndex],
           quantity: newItems[existingItemIndex].quantity + quantity,
           subtotal: calculateItemSubtotal(product, newItems[existingItemIndex].quantity + quantity)
         };
       } else {
-        // Add new item
         newItems.push({
           productId: product.id,
           productName: product.name,
@@ -62,7 +57,6 @@ export const GuestCartProvider = ({ children }) => {
         });
       }
 
-      // Calculate totals
       const { subtotal, itemCount } = calculateCartTotals(newItems);
       
       return {
@@ -77,7 +71,6 @@ export const GuestCartProvider = ({ children }) => {
 
   const updateGuestCartItem = (productId, quantity) => {
     setGuestCart(prevCart => {
-      // Find the item to update
       const itemIndex = prevCart.items.findIndex(item => item.productId === productId);
       
       if (itemIndex === -1) return prevCart;
@@ -85,10 +78,8 @@ export const GuestCartProvider = ({ children }) => {
       let newItems = [...prevCart.items];
       
       if (quantity <= 0) {
-        // Remove item if quantity is 0 or negative
         newItems = newItems.filter(item => item.productId !== productId);
       } else {
-        // Update item quantity
         newItems[itemIndex] = {
           ...newItems[itemIndex],
           quantity,
@@ -96,7 +87,6 @@ export const GuestCartProvider = ({ children }) => {
         };
       }
 
-      // Calculate totals
       const { subtotal, itemCount } = calculateCartTotals(newItems);
       
       return {
@@ -113,7 +103,6 @@ export const GuestCartProvider = ({ children }) => {
     setGuestCart(prevCart => {
       const newItems = prevCart.items.filter(item => item.productId !== productId);
       
-      // Calculate totals
       const { subtotal, itemCount } = calculateCartTotals(newItems);
       
       return {
@@ -138,13 +127,11 @@ export const GuestCartProvider = ({ children }) => {
     localStorage.removeItem('guestCart');
   };
 
-  // Helper function to calculate item subtotal
   const calculateItemSubtotal = (product, quantity) => {
     const price = product.onSale && product.finalPrice ? product.finalPrice : product.price;
     return price * quantity;
   };
 
-  // Helper function to calculate cart totals
   const calculateCartTotals = (items) => {
     const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);

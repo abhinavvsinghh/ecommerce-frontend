@@ -9,7 +9,6 @@ export const AuthProvider = ({ children }) => {
   const [authenticated, setAuthenticated] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
-  // Check authentication status on mount and when auth token changes
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
@@ -37,8 +36,6 @@ export const AuthProvider = ({ children }) => {
               setUser(currentUser);
             } catch (userError) {
               console.error("Error fetching user details:", userError);
-              // If we can't get the user details but the token is valid,
-              // we'll still consider the user authenticated but with limited info
               setUser({ email: localStorage.getItem("userEmail") || "" });
             }
           } else {
@@ -70,7 +67,6 @@ export const AuthProvider = ({ children }) => {
 
     checkAuthStatus();
 
-    // Set up listener for storage events (for multi-tab synchronization)
     const handleStorageChange = (e) => {
       if (e.key === "authToken") {
         checkAuthStatus();

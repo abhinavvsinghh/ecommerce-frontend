@@ -142,11 +142,9 @@ const Header = () => {
     handleMenuClose();
   };
 
-  // Category menu handlers - Now with click
   const handleMenClick = (event) => {
     if (menAnchorEl) {
       setMenAnchorEl(null); // Close if already open
-      // When the menu is already open, clicking should navigate to all men's products
       handleCategoryClick('men');
     } else {
       setMenAnchorEl(event.currentTarget);
@@ -157,7 +155,6 @@ const Header = () => {
   const handleWomenClick = (event) => {
     if (womenAnchorEl) {
       setWomenAnchorEl(null); // Close if already open
-      // When the menu is already open, clicking should navigate to all women's products
       handleCategoryClick('women');
     } else {
       setWomenAnchorEl(event.currentTarget);
@@ -198,9 +195,7 @@ const Header = () => {
   const isMenMenuOpen = Boolean(menAnchorEl);
   const isWomenMenuOpen = Boolean(womenAnchorEl);
 
-  // Render category menu for Men or Women with better grid layout
   const renderCategoryMenu = (categories, gender) => {
-    // Flatten one level to get all subcategories
     const allSubcategories = categories.flatMap((category) =>
       category.children ? category.children : []
     );

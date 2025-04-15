@@ -1,11 +1,8 @@
 import api from './api';
 
-// Default empty cart state to return on errors
 const emptyCart = { items: [], itemCount: 0, subtotal: 0, totalPrice: 0 };
 
-// Get user's cart with error handling
 export const getCart = async () => {
-  // Avoid making API calls if no auth token exists
   const authToken = localStorage.getItem('authToken');
   if (!authToken) {
     console.warn('No auth token available when fetching cart');
@@ -26,7 +23,6 @@ export const getCart = async () => {
       localStorage.removeItem('userEmail');
     }
     
-    // Always return valid cart object on error
     return emptyCart;
   }
 };

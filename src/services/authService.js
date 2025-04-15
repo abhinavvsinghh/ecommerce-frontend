@@ -195,26 +195,21 @@ export const googleSignIn = async (idToken) => {
       params: { idToken, provider: 'google' }
     });
     
-    // Store token for API authentication - ensure consistent behavior with regular login
     if (response.data && response.data.token) {
       localStorage.setItem('authToken', response.data.token);
       
-      // Also store the email for fallback
       if (response.data.email) {
         localStorage.setItem('userEmail', response.data.email);
       }
     } else {
-      // If we get a user response without token, check if token might be in a different place
       console.warn('No token found in response data, checking alternative locations');
       
       if (response.data?.id) {
-        // Make a direct call to get the current user details which should include the token
         try {
           const userResponse = await api.get('/auth/current-user');
           if (userResponse.data && userResponse.data.token) {
             localStorage.setItem('authToken', userResponse.data.token);
             
-            // Merge the user data
             return {...response.data, ...userResponse.data};
           }
         } catch (innerError) {

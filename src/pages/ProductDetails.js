@@ -87,7 +87,6 @@ const ProductDetails = () => {
     try {
       setAddingToCart(true);
       
-      // Add to cart with product, quantity, size, color
       const result = await addToCart(
         product.id, 
         quantity, 
@@ -96,8 +95,6 @@ const ProductDetails = () => {
         product
       );
       
-      // Navigate to cart if product was successfully added
-      // This happens if user is authenticated or has chosen guest mode before
       if (result && (authenticated || guestModeChosen)) {
         setTimeout(() => {
           navigate('/cart');
@@ -113,11 +110,9 @@ const ProductDetails = () => {
   const handleDialogAction = (action) => {
     continueAsGuest(action);
     
-    // If user chose guest mode, navigate to cart after adding product
     if (action === 'guest') {
       setTimeout(() => navigate('/cart'), 300);
     }
-    // If user chose login, they'll be redirected to login page automatically
   };
   
   if (loading) {

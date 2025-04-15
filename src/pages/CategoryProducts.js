@@ -43,7 +43,6 @@ const CategoryProducts = () => {
           setProducts(productsData);
           setCategoryName(categoryData.name);
         } else if (gender) {
-          // For Men/Women top-level categories, we need to find their category ID first
           const topLevelCategories = await getAllCategories();
           const genderCategory = topLevelCategories.find(cat => 
             cat.name.toLowerCase() === gender.toLowerCase() || 

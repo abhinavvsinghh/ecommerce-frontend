@@ -34,12 +34,10 @@ const ProductCard = memo(({ product }) => {
     navigate(`/products/${id}`);
   };
   
-  // Use the first image as the display image or a placeholder if no images
   const displayImage = images && images.length > 0
     ? images[0]
     : 'https://via.placeholder.com/300x200?text=No+Image+Available';
   
-  // Format prices to have consistent decimal places
   const formattedPrice = typeof price === 'number' ? price.toFixed(2) : price;
   const formattedFinalPrice = typeof finalPrice === 'number' ? finalPrice.toFixed(2) : finalPrice;
   
@@ -51,7 +49,7 @@ const ProductCard = memo(({ product }) => {
           height="200"
           image={displayImage}
           alt={name}
-          loading="lazy" // Add lazy loading for better performance
+          loading="lazy"
         />
         {onSale && (
           <Chip
@@ -136,7 +134,6 @@ const ProductCard = memo(({ product }) => {
   );
 });
 
-// Add display name for better debugging
 ProductCard.displayName = 'ProductCard';
 
 export default ProductCard;

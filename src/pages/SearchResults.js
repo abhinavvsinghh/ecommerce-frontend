@@ -36,12 +36,11 @@ const SearchResults = () => {
     minPrice: null,
     maxPrice: null,
     page: 0,
-    size: 24, // Increased size for better user experience
+    size: 24,
     fuzzySearch: true
   });
   
   useEffect(() => {
-    // Reset criteria when keyword or category changes
     setSearchCriteria(prev => ({
       ...prev,
       keyword: keyword,

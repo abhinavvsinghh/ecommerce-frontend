@@ -39,22 +39,16 @@ const Login = () => {
   const location = useLocation();
   const [error, setError] = useState('');
   
-  // Check for redirect path in state or query params
   const redirectTo = location.state?.redirectTo || 
                      returnTo || 
                      new URLSearchParams(location.search).get('redirectTo') || 
                      '/';
-  
-  // Note: We no longer need to extract pendingProduct from state
-  // It will be handled automatically by the useCart hook via sessionStorage
 
   useEffect(() => {
-    // If already authenticated, redirect to intended destination
     if (authenticated) {
       navigate(redirectTo, { replace: true });
     }
     
-    // Check if there's a saved email in localStorage
     const savedEmail = localStorage.getItem('email');
     if (savedEmail) {
       formik.setFieldValue('email', savedEmail);
@@ -76,10 +70,8 @@ const Login = () => {
         if (!success) {
           setError('Login failed. Please check your credentials.');
         } else {
-          // On successful login - just one toast notification
           toast.success('Login successful!');
           
-          // Redirect back to where the user was - useCart hook will handle the pending product
           navigate(redirectTo, { replace: true });
         }
       } catch (err) {
@@ -97,7 +89,6 @@ const Login = () => {
     googleLogin(credentialResponse)
       .then(() => {
         toast.success('Login successful with Google!');
-        // Redirect - useCart hook will handle the pending product
         navigate(redirectTo, { replace: true });
       })
       .catch(error => {
@@ -184,11 +175,11 @@ const Login = () => {
                 />
               </Grid>
               
-              <Grid item>
+              {/* <Grid item>
                 <Link component={RouterLink} to="/forgot-password" variant="body2">
                   Forgot password?
                 </Link>
-              </Grid>
+              </Grid> */}
             </Grid>
             
             <Button

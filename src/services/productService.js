@@ -47,7 +47,6 @@ export const searchProducts = async (keyword) => {
 // Advanced search with optimized performance
 export const advancedSearch = async (criteria) => {
   try {
-    // Use POST for more complex search criteria
     const response = await api.post('/products/search/advanced', criteria);
     return response.data;
   } catch (error) {
@@ -56,7 +55,6 @@ export const advancedSearch = async (criteria) => {
   }
 };
 
-// Advanced search with GET - useful for simple URL-based searches
 export const advancedSearchGet = async (params) => {
   try {
     const queryString = Object.entries(params)
@@ -75,7 +73,7 @@ export const advancedSearchGet = async (params) => {
 // Get products on sale - with optimized caching
 let cachedSaleProducts = null;
 let lastSaleFetch = 0;
-const CACHE_TTL = 60000; // 1 minute cache
+const CACHE_TTL = 60000;
 
 export const getProductsOnSale = async () => {
   try {

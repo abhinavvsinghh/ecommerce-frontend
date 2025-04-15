@@ -3,22 +3,18 @@ import axios from 'axios';
 // Read API URL from environment variables
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
-// Create a base api instance with configured defaults
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   },
-  // Limit number of retries and timeout to avoid infinite loops
-  timeout: 10000, // 10 second timeout
+  timeout: 10000,
 });
 
-// Track if a token refresh is in progress to avoid duplicate requests
 let isRefreshing = false;
 let lastRefreshTime = 0;
-const MIN_REFRESH_INTERVAL = 5000; // Minimum 5 seconds between refresh attempts
+const MIN_REFRESH_INTERVAL = 5000;
 
-// Add a request interceptor to include the authentication token
 api.interceptors.request.use(
   async (config) => {
     try {
@@ -42,18 +38,15 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor to handle common errors
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    // Don't handle errors if request was cancelled
     if (axios.isCancel(error)) {
       return Promise.reject(error);
     }
     
-    // Check for network errors or timeouts and provide a friendly message
     if (error.message === 'Network Error' || error.code === 'ECONNABORTED') {
       console.error('Network connection issue detected');
       return Promise.reject(new Error('Network connection issue. Please check your internet connection.'));
@@ -65,7 +58,6 @@ api.interceptors.response.use(
     if (response && response.status === 401) {
       const currentTime = Date.now();
       
-      // Prevent multiple simultaneous token refresh attempts
       if (!isRefreshing && (currentTime - lastRefreshTime > MIN_REFRESH_INTERVAL)) {
         isRefreshing = true;
         lastRefreshTime = currentTime;

@@ -26,34 +26,28 @@ const NavigationButton = styled(IconButton)(({ theme }) => ({
   boxShadow: theme.shadows[2]
 }));
 
-// Use memo to prevent unnecessary re-renders
 const ProductRow = memo(({ title, products, maxDisplayItems = 4 }) => {
   const scrollContainerRef = useRef(null);
   const [showLeftNav, setShowLeftNav] = useState(false);
   const [showRightNav, setShowRightNav] = useState(false);
 
   useEffect(() => {
-    // Check if navigation buttons should be visible
     const checkNavVisibility = () => {
       if (!scrollContainerRef.current) return;
       
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       setShowLeftNav(scrollLeft > 0);
-      setShowRightNav(scrollLeft < scrollWidth - clientWidth - 5); // 5px buffer
+      setShowRightNav(scrollLeft < scrollWidth - clientWidth - 5);
     };
 
     const container = scrollContainerRef.current;
     if (container) {
-      // Initial check
       checkNavVisibility();
       
-      // Add event listener for scroll
       container.addEventListener('scroll', checkNavVisibility);
       
-      // Initial check if right nav should be visible
       setShowRightNav(container.scrollWidth > container.clientWidth);
       
-      // Observer for changes to container's children (product cards loading)
       const resizeObserver = new ResizeObserver(() => {
         checkNavVisibility();
       });
@@ -67,15 +61,14 @@ const ProductRow = memo(({ title, products, maxDisplayItems = 4 }) => {
         }
       };
     }
-  }, [products]); // Only re-run if products change
+  }, [products]);
 
   const scrollLeft = () => {
     const container = scrollContainerRef.current;
     if (container) {
-      // Calculate scroll distance based on card width
       const cardWidth = container.clientWidth / maxDisplayItems;
       container.scrollBy({
-        left: -cardWidth * Math.min(maxDisplayItems, 2), // Scroll by 2 cards or max visible
+        left: -cardWidth * Math.min(maxDisplayItems, 2),
         behavior: 'smooth'
       });
     }
@@ -84,16 +77,14 @@ const ProductRow = memo(({ title, products, maxDisplayItems = 4 }) => {
   const scrollRight = () => {
     const container = scrollContainerRef.current;
     if (container) {
-      // Calculate scroll distance based on card width
       const cardWidth = container.clientWidth / maxDisplayItems;
       container.scrollBy({
-        left: cardWidth * Math.min(maxDisplayItems, 2), // Scroll by 2 cards or max visible
+        left: cardWidth * Math.min(maxDisplayItems, 2),
         behavior: 'smooth'
       });
     }
   };
 
-  // Don't render if no products
   if (!products || products.length === 0) {
     return null;
   }
@@ -147,7 +138,6 @@ const ProductRow = memo(({ title, products, maxDisplayItems = 4 }) => {
   );
 });
 
-// Add display name for better debugging
 ProductRow.displayName = 'ProductRow';
 
 export default ProductRow;

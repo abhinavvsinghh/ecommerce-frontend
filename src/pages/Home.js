@@ -15,7 +15,6 @@ const Home = () => {
   });
   const [error, setError] = useState(null);
 
-  // Memoizing fetch functions to avoid re-creation on each render
   const fetchSaleProducts = useCallback(async () => {
     try {
       const saleProductsData = await getProductsOnSale();
@@ -31,7 +30,7 @@ const Home = () => {
   const fetchCategoryProducts = useCallback(async (categoryId, gender) => {
     try {
       const productsData = await getProductsByCategory(categoryId);
-      const limitedProducts = productsData.slice(0, 10); // Limit to 10 products
+      const limitedProducts = productsData.slice(0, 10);
       
       if (gender === 'women') {
         setWomenProducts(limitedProducts);
@@ -47,22 +46,17 @@ const Home = () => {
     }
   }, []);
 
-  // Effect for fetching data with separate promises for better performance
   useEffect(() => {
-    // Get categories first to know what to fetch
     const fetchData = async () => {
       try {
-        // Start fetching sale products immediately - don't wait
+
         fetchSaleProducts();
-        
-        // Get all categories
+
         const categoriesData = await getAllCategories();
-        
-        // Find women and men category IDs
+
         const womenCategory = categoriesData.find(cat => cat.name === 'Women');
         const menCategory = categoriesData.find(cat => cat.name === 'Men');
         
-        // Fetch products for women and men in parallel
         if (womenCategory) {
           fetchCategoryProducts(womenCategory.id, 'women');
         } else {
@@ -84,7 +78,6 @@ const Home = () => {
     fetchData();
   }, [fetchSaleProducts, fetchCategoryProducts]);
 
-  // Render product rows with proper loading states
   const renderProductRow = (title, products, isLoading) => {
     if (isLoading) {
       return (
@@ -128,13 +121,8 @@ const Home = () => {
         )}
         
         <Box>
-          {/* On Sale Products - render first for better perceived performance */}
           {renderProductRow("On Sale", saleProducts, loading.sale)}
-          
-          {/* Women's Products */}
           {renderProductRow("Women's Collection", womenProducts, loading.women)}
-          
-          {/* Men's Products */}
           {renderProductRow("Men's Collection", menProducts, loading.men)}
         </Box>
       </Container>
